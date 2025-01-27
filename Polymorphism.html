@@ -1,0 +1,292 @@
+<!DOCTYPE HTML>
+<!--
+	Forty by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+	<head>
+		<title>Generic - Forty by HTML5 UP</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="assets/css/main.css" />
+		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+	</head>
+	<body class="is-preload">
+
+		<!-- Wrapper -->
+			<div id="wrapper">
+
+				<!-- Header -->
+					<header id="header">
+						<a href="index.html" class="logo"><strong>Forty</strong> <span>by HTML5 UP</span></a>
+						<nav>
+							<a href="#menu">Menu</a>
+						</nav>
+					</header>
+
+				<!-- Menu -->
+					<nav id="menu">
+						<ul class="links">
+							<li><a href="index.html">Home</a></li>
+							<li><a href="landing.html">Landing</a></li>
+							<li><a href="generic.html">Generic</a></li>
+							<li><a href="elements.html">Elements</a></li>
+						</ul>
+						<ul class="actions stacked">
+							<li><a href="#" class="button primary fit">Get Started</a></li>
+							<li><a href="#" class="button fit">Log In</a></li>
+						</ul>
+					</nav>
+
+				<!-- Main -->
+					<div id="main" class="alt">
+
+						<!-- One --><section id="one">
+    <div class="inner">
+        <header class="major">
+            <h1>Unit 5 - Polymorphism</h1>
+        </header>
+        <span class="image main"><img src="images/pic11.jpg" alt="" /></span>
+		<h2>Email to tutor with code </h2>
+        <p>Polymorphism is a fundamental concept in object-oriented programming that allows objects to be treated as instances of their parent class, enabling flexibility and scalability in the design of complex systems. In this section, I explore how polymorphism was applied in my robot system using the state design pattern.</p>
+		Please see below my python code for my robot system which includes polymorphism. Polymophism is used to handle the different states of the robot, such as pickingstate, qualitycontrolstate and stockauditstate, in a flexible way. I have implemented an abstract class called the ‘State’ class which has 2 methods, perform_action and get_ next_state. All state classes must have these methods. In the robot class, there is a state attribute where any of the state classes can be passed through. The perform_action method is called on the current state and depending on which state it is moves on differently. This is where polymothism comes into play as each state can have its own behaviour. The robot class doesn’t needs to know which state it is working with, it just knows it can call these states.
+
+        <!-- Code Snippet of Robot System -->
+        <pre><code>
+import time
+import queue
+from abc import ABC, abstractmethod
+
+
+# Abstract State Class
+class State(ABC):
+    """Abstract base class for all states."""
+    @abstractmethod
+    def perform_action(self, robot):
+        pass
+
+    @abstractmethod
+    def get_next_state(self, robot):
+        pass
+
+
+class PickingState(State):
+    """Picking state where robot picks items."""
+
+    def perform_action(self, robot):
+        print("Picking items from the queue...")
+        time.sleep(5)
+        item = robot.picking_queue.pick_item()
+        if item:
+            print(f"Picked item: {item}")
+        else:
+            print("Picking queue is empty.")
+        robot.set_state(self.get_next_state(robot))
+
+    def get_next_state(self, robot):
+        return QualityControlState() if robot.picking_queue.is_empty() else PickingState()
+
+
+class QualityControlState(State):
+
+    def perform_action(self, robot):
+        print("Inspecting items...")
+        time.sleep(5)
+        job_number = robot.QC_Stack.QC_job()
+        if job_number:
+            print(f"Inspected job: {job_number}")
+        else:
+            print("QC stack is empty.")
+        robot.set_state(self.get_next_state(robot))
+
+    def get_next_state(self, robot):
+        return StockAuditState() if robot.QC_Stack.is_empty() else QualityControlState()
+
+
+class StockAuditState(State):
+    """Stock audit state where robot checks stock."""
+
+    def perform_action(self, robot):
+        if robot.audit_completed:
+            print("Stock audit has already been completed.")
+            robot.set_state(self.get_next_state(robot))
+            return
+
+        print("Performing stock audit...")
+        time.sleep(5)  # Simulate stock audit operation
+        item = robot.stock_audit_list.audit_item()
+        if item:
+            print(f"Auditing item: {item}")
+        else:
+            print("Stock audit list is empty.")
+        robot.set_state(self.get_next_state(robot))
+
+    def get_next_state(self, robot):
+        if robot.stock_audit_list.is_empty():
+            robot.audit_completed = True
+            return None  # Robot becomes idle when done
+        return StockAuditState()
+
+
+class Robot:
+
+    def __init__(self):
+        self.state = PickingState()  # Start in PickingState
+        self.picking_queue = PickingQueue()
+        self.QC_Stack = QualityControlStack()
+        self.stock_audit_list = StockAuditList()
+        self.audit_completed = False
+        self.running = True
+
+    def set_state(self, state):
+        """Sets the current state."""
+        if state is None:
+            print("Robot is now idle.")
+            self.running = False  # Stop the robot
+        else:
+            self.state = state
+
+    def run(self):
+        """Run the robot's state machine."""
+        while self.running:
+            self.state.perform_action(self)
+
+
+class PickingQueue:
+    def __init__(self):
+        self.items = queue.Queue()
+        self.items.put("item1")
+        self.items.put("item2")
+        self.items.put("item3")
+
+    def enqueue(self, item):
+        self.items.put(item)  # Add item to the end of the queue
+
+    def pick_item(self):
+        if not self.items.empty():  # Ensure queue is not empty
+            return self.items.get()  # Remove and return the item from the front of the queue
+        return None
+
+    def is_empty(self):
+        return self.items.empty()  # Check if the queue is empty
+
+
+class QualityControlStack:
+    def __init__(self):
+        self.jobs = ["Job1", "Job2"]
+
+    def QC_job(self):
+        return self.jobs.pop() if self.jobs else None
+
+    def is_empty(self):
+        return not self.jobs
+
+
+class StockAuditList:
+    def __init__(self):
+        self.items = ["Audit1", "Audit2"]
+
+    def audit_item(self):
+        return self.items.pop(0) if self.items else None
+
+    def is_empty(self):
+        return not self.items
+
+
+robot = Robot()
+robot.run()
+        </code></pre>
+
+		<h2> Reflection on feedback received from Tutor </h2>
+		<p>Receiving detailed feedback from my tutor was invaluable and reinforced my confidence in approaching polymorphism and the state design pattern. The feedback highlighted my strengths in implementing an abstract base class (State) to encapsulate polymorphic behavior, which ensured flexibility and scalability. This clarity on my understanding boosted my confidence, particularly at the master’s level, where a deep grasp of such concepts is expected.
+
+Moreover, the constructive criticism regarding possible improvements, such as addressing O(n) complexity through the use of collections.deque and the importance of error handling, was particularly insightful. These suggestions helped me realize the significance of optimizing code performance and enhancing robustness, both of which are critical components at the master’s level of study.</p>
+    </div>
+</section>
+
+
+					</div>
+
+				<!-- Contact -->
+					<section id="contact">
+						<div class="inner">
+							<section>
+								<form method="post" action="#">
+									<div class="fields">
+										<div class="field half">
+											<label for="name">Name</label>
+											<input type="text" name="name" id="name" />
+										</div>
+										<div class="field half">
+											<label for="email">Email</label>
+											<input type="text" name="email" id="email" />
+										</div>
+										<div class="field">
+											<label for="message">Message</label>
+											<textarea name="message" id="message" rows="6"></textarea>
+										</div>
+									</div>
+									<ul class="actions">
+										<li><input type="submit" value="Send Message" class="primary" /></li>
+										<li><input type="reset" value="Clear" /></li>
+									</ul>
+								</form>
+							</section>
+							<section class="split">
+								<section>
+									<div class="contact-method">
+										<span class="icon solid alt fa-envelope"></span>
+										<h3>Email</h3>
+										<a href="#">information@untitled.tld</a>
+									</div>
+								</section>
+								<section>
+									<div class="contact-method">
+										<span class="icon solid alt fa-phone"></span>
+										<h3>Phone</h3>
+										<span>(000) 000-0000 x12387</span>
+									</div>
+								</section>
+								<section>
+									<div class="contact-method">
+										<span class="icon solid alt fa-home"></span>
+										<h3>Address</h3>
+										<span>1234 Somewhere Road #5432<br />
+										Nashville, TN 00000<br />
+										United States of America</span>
+									</div>
+								</section>
+							</section>
+						</div>
+					</section>
+
+				<!-- Footer -->
+					<footer id="footer">
+						<div class="inner">
+							<ul class="icons">
+								<li><a href="#" class="icon brands alt fa-twitter"><span class="label">Twitter</span></a></li>
+								<li><a href="#" class="icon brands alt fa-facebook-f"><span class="label">Facebook</span></a></li>
+								<li><a href="#" class="icon brands alt fa-instagram"><span class="label">Instagram</span></a></li>
+								<li><a href="#" class="icon brands alt fa-github"><span class="label">GitHub</span></a></li>
+								<li><a href="#" class="icon brands alt fa-linkedin-in"><span class="label">LinkedIn</span></a></li>
+							</ul>
+							<ul class="copyright">
+								<li>&copy; Untitled</li><li>Design: <a href="https://html5up.net">HTML5 UP</a></li>
+							</ul>
+						</div>
+					</footer>
+
+			</div>
+
+		<!-- Scripts -->
+			<script src="assets/js/jquery.min.js"></script>
+			<script src="assets/js/jquery.scrolly.min.js"></script>
+			<script src="assets/js/jquery.scrollex.min.js"></script>
+			<script src="assets/js/browser.min.js"></script>
+			<script src="assets/js/breakpoints.min.js"></script>
+			<script src="assets/js/util.js"></script>
+			<script src="assets/js/main.js"></script>
+
+	</body>
+</html>
